@@ -23,6 +23,9 @@ const PathMap = dynamic(
 export default function Home() {
   const [startId, setStartId] = useState("union-station");
   const [endId, setEndId] = useState("first-canadian-place");
+  const [mapClickMode, setMapClickMode] = useState<"start" | "destination">(
+    "destination"
+  );
   const [routePreference, setRoutePreference] = useState<RoutePreference>("fastest");
 
   const route = findRoute(startId, endId, nodes, edges, routePreference);
@@ -53,7 +56,40 @@ export default function Home() {
                 onStartChange={setStartId}
                 onEndChange={setEndId}
               />
-              <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-xl">
+
+          <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-xl">
+            <h2 className="text-xl font-semibold">Map click mode</h2>
+            <p className="mt-2 text-sm text-slate-400">
+              Choose what happens when you click a location marker on the map.
+            </p>
+
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setMapClickMode("start")}
+                className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${
+                  mapClickMode === "start"
+                    ? "bg-green-500 text-slate-950"
+                    : "bg-slate-950 text-slate-300 hover:bg-slate-800"
+                }`}
+              >
+                Set start
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setMapClickMode("destination")}
+                className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${
+                  mapClickMode === "destination"
+                    ? "bg-orange-500 text-slate-950"
+                    : "bg-slate-950 text-slate-300 hover:bg-slate-800"
+                }`}
+              >
+                Set destination
+              </button>
+            </div>
+          </div>
+          <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-xl">
           <h2 className="text-xl font-semibold">Route options</h2>
           <p className="mt-2 text-sm text-slate-400">
             Choose how the route should be planned.
@@ -128,6 +164,14 @@ export default function Home() {
             route={route}
             startId={startId}
             endId={endId}
+            onSelectNode={(nodeId) => {
+              if (mapClickMode === "start") {
+                setStartId(nodeId);
+                return;
+              }
+
+              setEndId(nodeId);
+            }}
           />
         </div>
       </section>
