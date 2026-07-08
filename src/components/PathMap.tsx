@@ -1,3 +1,15 @@
+"use client";
+
+import {
+  CircleMarker,
+  MapContainer,
+  Polyline,
+  Popup,
+  Rectangle,
+  Tooltip,
+  useMap,
+} from "react-leaflet";
+import { CRS, latLngBounds, LatLngExpression } from "leaflet";
 import type { PathEdge, PathNode } from "@/types/path";
 import type { RouteResult } from "@/lib/routeFinder";
 
@@ -9,6 +21,39 @@ type PathMapProps = {
   endId: string;
   onSelectNode?: (nodeId: string) => void;
 };
+
+function toMapPosition(node: PathNode): LatLngExpression {
+  return [100 - node.y, node.x];
+}
+
+function FitMapToRoute({ route }: { route: RouteResult | null }) {
+  const map = useMap();
+
+  if (!route || route.steps.length === 0) {
+    return null;
+  }
+
+  const routePositions: LatLngExpression[] = [];
+
+  for (const step of route.steps) {
+    routePositions.push(toMapPosition(step.from));
+    routePositions.push(toMapPosition(step.to));
+  }
+
+  if (routePositions.length < 2) {
+    return null;
+  }
+
+  setTimeout(() => {
+    const bounds = latLngBounds(routePositions);
+    map.fitBounds(bounds, {
+      padding: [60, 60],
+      maxZoom: 5,
+    });
+  }, 0);
+
+  return null;
+}
 
 export function PathMap({
   nodes,
@@ -31,150 +76,185 @@ export function PathMap({
     );
   };
 
+  const routePositions: LatLngExpression[] =
+    route?.steps.flatMap((step) => [
+      toMapPosition(step.from),
+      toMapPosition(step.to),
+    ]) ?? [];
+
   return (
-    <div className="h-full rounded-2xl border border-slate-800 bg-slate-950 p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-white">PATH Map</h2>
-          <p className="text-sm text-slate-400">
-            Prototype visual route map
-          </p>
-        </div>
-
-        <div className="flex gap-2 text-xs">
-          <span className="rounded-full bg-cyan-500/20 px-3 py-1 text-cyan-200">
-            Route
-          </span>
-          <span className="rounded-full bg-slate-800 px-3 py-1 text-slate-300">
-            PATH
-          </span>
-        </div>
+    <div className="relative h-[650px] overflow-hidden rounded-2xl border border-slate-800 bg-slate-950 shadow-2xl">
+      <div className="absolute left-4 top-4 z-[1000] rounded-2xl border border-slate-700 bg-slate-950/90 px-4 py-3 shadow-xl backdrop-blur">
+        <p className="text-sm font-semibold text-white">PATH Map</p>
+        <p className="text-xs text-slate-400">Zoom, drag, and select places</p>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-slate-800 bg-slate-900">
-        <svg
-          viewBox="0 0 100 100"
-          className="h-[520px] w-full cursor-grab touch-none"
-          role="img"
-          aria-label="Interactive Toronto PATH route map prototype"
-        >
-          <rect width="100" height="100" fill="transparent" />
-
-          {/* Background grid */}
-          {Array.from({ length: 11 }).map((_, index) => (
-            <g key={index}>
-              <line
-                x1={index * 10}
-                y1="0"
-                x2={index * 10}
-                y2="100"
-                stroke="rgba(148, 163, 184, 0.12)"
-                strokeWidth="0.2"
-              />
-              <line
-                x1="0"
-                y1={index * 10}
-                x2="100"
-                y2={index * 10}
-                stroke="rgba(148, 163, 184, 0.12)"
-                strokeWidth="0.2"
-              />
-            </g>
-          ))}
-
-          {/* Existing PATH connections */}
-          {edges.map((edge) => {
-            const from = nodeMap.get(edge.from);
-            const to = nodeMap.get(edge.to);
-
-            if (!from || !to) return null;
-
-            const highlighted = isRouteEdge(edge);
-
-            return (
-              <line
-                key={`${edge.from}-${edge.to}`}
-                x1={from.x}
-                y1={from.y}
-                x2={to.x}
-                y2={to.y}
-                stroke={highlighted ? "#22d3ee" : "#475569"}
-                strokeWidth={highlighted ? 2.8 : 1.2}
-                strokeLinecap="round"
-                opacity={highlighted ? 1 : 0.55}
-              />
-            );
-          })}
-
-          {/* Nodes */}
-          {nodes.map((node) => {
-            const isStart = node.id === startId;
-            const isEnd = node.id === endId;
-            const isOnRoute =
-              route?.steps.some(
-                (step) => step.from.id === node.id || step.to.id === node.id
-              ) ?? false;
-
-            return (
-              <g
-                key={node.id}
-                onClick={() => onSelectNode?.(node.id)}
-                className="cursor-pointer"
-              >
-                <circle
-                  cx={node.x}
-                  cy={node.y}
-                  r={isStart || isEnd ? 2.6 : 2}
-                  fill={
-                    isStart
-                      ? "#22c55e"
-                      : isEnd
-                      ? "#f97316"
-                      : isOnRoute
-                      ? "#22d3ee"
-                      : "#cbd5e1"
-                  }
-                  stroke="#020617"
-                  strokeWidth="0.8"
-                />
-
-                <text
-                  x={node.x + 2.8}
-                  y={node.y + 0.8}
-                  fontSize="2.6"
-                  fill="#e2e8f0"
-                >
-                  {node.name}
-                </text>
-
-                <text
-                  x={node.x + 2.8}
-                  y={node.y + 3.8}
-                  fontSize="1.8"
-                  fill="#94a3b8"
-                >
-                  {node.levels.join(", ")}
-                </text>
-              </g>
-            );
-          })}
-        </svg>
+      <div className="absolute bottom-4 left-4 z-[1000] flex gap-2 rounded-2xl border border-slate-700 bg-slate-950/90 p-2 shadow-xl backdrop-blur">
+        <button className="rounded-xl bg-cyan-500 px-3 py-2 text-xs font-semibold text-slate-950">
+          Lower Level
+        </button>
+        <button className="rounded-xl bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-300">
+          Retail
+        </button>
+        <button className="rounded-xl bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-300">
+          Street
+        </button>
       </div>
 
-      <div className="mt-4 grid gap-2 text-sm text-slate-300 md:grid-cols-3">
-        <div>
-          <span className="mr-2 inline-block h-3 w-3 rounded-full bg-green-500" />
-          Start
-        </div>
-        <div>
-          <span className="mr-2 inline-block h-3 w-3 rounded-full bg-orange-500" />
-          Destination
-        </div>
-        <div>
-          <span className="mr-2 inline-block h-3 w-3 rounded-full bg-cyan-400" />
-          Route
-        </div>
-      </div>
+      <MapContainer
+        crs={CRS.Simple}
+        bounds={[
+          [0, 0],
+          [100, 100],
+        ]}
+        maxBounds={[
+          [-20, -20],
+          [120, 120],
+        ]}
+        center={[50, 50]}
+        zoom={3}
+        minZoom={2}
+        maxZoom={6}
+        scrollWheelZoom
+        className="h-full w-full bg-slate-950"
+      >
+        <FitMapToRoute route={route} />
+
+        {/* Simple downtown background blocks */}
+        <Rectangle
+          bounds={[
+            [5, 5],
+            [95, 95],
+          ]}
+          pathOptions={{
+            color: "#1e293b",
+            weight: 1,
+            fillColor: "#0f172a",
+            fillOpacity: 0.8,
+          }}
+        />
+
+        <Rectangle
+          bounds={[
+            [65, 35],
+            [92, 85],
+          ]}
+          pathOptions={{
+            color: "#334155",
+            weight: 1,
+            fillColor: "#1e293b",
+            fillOpacity: 0.5,
+          }}
+        />
+
+        <Rectangle
+          bounds={[
+            [35, 35],
+            [65, 75],
+          ]}
+          pathOptions={{
+            color: "#334155",
+            weight: 1,
+            fillColor: "#1e293b",
+            fillOpacity: 0.5,
+          }}
+        />
+
+        <Rectangle
+          bounds={[
+            [10, 35],
+            [35, 75],
+          ]}
+          pathOptions={{
+            color: "#334155",
+            weight: 1,
+            fillColor: "#1e293b",
+            fillOpacity: 0.5,
+          }}
+        />
+
+        {/* All PATH connections */}
+        {edges.map((edge) => {
+          const from = nodeMap.get(edge.from);
+          const to = nodeMap.get(edge.to);
+
+          if (!from || !to) return null;
+
+          const highlighted = isRouteEdge(edge);
+
+          return (
+            <Polyline
+              key={`${edge.from}-${edge.to}`}
+              positions={[toMapPosition(from), toMapPosition(to)]}
+              pathOptions={{
+                color: highlighted ? "#22d3ee" : "#64748b",
+                weight: highlighted ? 8 : 4,
+                opacity: highlighted ? 0.95 : 0.45,
+                lineCap: "round",
+              }}
+            />
+          );
+        })}
+
+        {/* Strong route overlay */}
+        {routePositions.length > 0 && (
+          <Polyline
+            positions={routePositions}
+            pathOptions={{
+              color: "#06b6d4",
+              weight: 4,
+              opacity: 1,
+              lineCap: "round",
+            }}
+          />
+        )}
+
+        {/* Location markers */}
+        {nodes.map((node) => {
+          const isStart = node.id === startId;
+          const isEnd = node.id === endId;
+          const isOnRoute =
+            route?.steps.some(
+              (step) => step.from.id === node.id || step.to.id === node.id
+            ) ?? false;
+
+          return (
+            <CircleMarker
+              key={node.id}
+              center={toMapPosition(node)}
+              radius={isStart || isEnd ? 11 : isOnRoute ? 9 : 7}
+              eventHandlers={{
+                click: () => onSelectNode?.(node.id),
+              }}
+              pathOptions={{
+                color: "#020617",
+                weight: 2,
+                fillColor: isStart
+                  ? "#22c55e"
+                  : isEnd
+                  ? "#f97316"
+                  : isOnRoute
+                  ? "#22d3ee"
+                  : "#cbd5e1",
+                fillOpacity: 1,
+              }}
+            >
+              <Tooltip direction="top" offset={[0, -8]} permanent={isStart || isEnd}>
+                {node.name}
+              </Tooltip>
+
+              <Popup>
+                <div className="space-y-1">
+                  <p className="font-semibold">{node.name}</p>
+                  <p>Type: {node.type}</p>
+                  <p>Levels: {node.levels.join(", ")}</p>
+                  {node.description && <p>{node.description}</p>}
+                </div>
+              </Popup>
+            </CircleMarker>
+          );
+        })}
+      </MapContainer>
     </div>
   );
 }

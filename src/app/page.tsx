@@ -1,10 +1,22 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { nodes } from "@/data/nodes";
 import { edges } from "@/data/edges";
 import { findRoute } from "@/lib/routeFinder";
-import { PathMap } from "@/components/PathMap";
+
+const PathMap = dynamic(
+  () => import("@/components/PathMap").then((mod) => mod.PathMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-[650px] items-center justify-center rounded-2xl border border-slate-800 bg-slate-950 text-slate-300">
+        Loading map...
+      </div>
+    ),
+  }
+);
 
 export default function Home() {
   const [startId, setStartId] = useState("union-station");
