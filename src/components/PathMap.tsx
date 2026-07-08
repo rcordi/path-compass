@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   CircleMarker,
   MapContainer,
@@ -10,7 +11,7 @@ import {
   useMap,
 } from "react-leaflet";
 import { CRS, latLngBounds, LatLngExpression } from "leaflet";
-import type { PathEdge, PathNode } from "@/types/path";
+import type { PathEdge, PathLevel, PathNode } from "@/types/path";
 import type { RouteResult } from "@/lib/routeFinder";
 
 type PathMapProps = {
@@ -65,6 +66,18 @@ export function PathMap({
 }: PathMapProps) {
   const nodeMap = new Map(nodes.map((node) => [node.id, node]));
 
+  const [activeLevel, setActiveLevel] = useState<PathLevel>("lower");
+
+  const visibleNodes = nodes.filter((node) =>
+    node.levels.includes(activeLevel)
+  );
+
+  const visibleNodeIds = new Set(visibleNodes.map((node) => node.id));
+
+  const visibleEdges = edges.filter(
+    (edge) => visibleNodeIds.has(edge.from) && visibleNodeIds.has(edge.to)
+  );
+
   const routeEdgeKeys = new Set(
     route?.steps.map((step) => `${step.from.id}-${step.to.id}`) ?? []
   );
@@ -90,16 +103,25 @@ export function PathMap({
       </div>
 
       <div className="absolute bottom-4 left-4 z-[1000] flex gap-2 rounded-2xl border border-slate-700 bg-slate-950/90 p-2 shadow-xl backdrop-blur">
-        <button className="rounded-xl bg-cyan-500 px-3 py-2 text-xs font-semibold text-slate-950">
-          Lower Level
+      {[
+        { label: "Lower Level", value: "lower" },
+        { label: "Retail Level", value: "retail" },
+        { label: "Street Level", value: "street" },
+      ].map((level) => (
+        <button
+          key={level.value}
+          type="button"
+          onClick={() => setActiveLevel(level.value as PathLevel)}
+          className={`rounded-xl px-3 py-2 text-xs font-semibold transition ${
+            activeLevel === level.value
+              ? "bg-cyan-500 text-slate-950"
+              : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+          }`}
+        >
+          {level.label}
         </button>
-        <button className="rounded-xl bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-300">
-          Retail
-        </button>
-        <button className="rounded-xl bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-300">
-          Street
-        </button>
-      </div>
+      ))}
+    </div>
 
       <MapContainer
         crs={CRS.Simple}
@@ -174,7 +196,7 @@ export function PathMap({
         />
 
         {/* All PATH connections */}
-        {edges.map((edge) => {
+        {visibleEdges.map((edge) => {
           const from = nodeMap.get(edge.from);
           const to = nodeMap.get(edge.to);
 
@@ -210,7 +232,7 @@ export function PathMap({
         )}
 
         {/* Location markers */}
-        {nodes.map((node) => {
+        {visibleNodes.map((node) => {
           const isStart = node.id === startId;
           const isEnd = node.id === endId;
           const isOnRoute =
