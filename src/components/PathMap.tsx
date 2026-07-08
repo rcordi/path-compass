@@ -292,27 +292,28 @@ export function PathMap({
               key={`${edge.from}-${edge.to}`}
               positions={[toMapPosition(from), toMapPosition(to)]}
               pathOptions={{
-                color: highlighted ? "#22d3ee" : "#64748b",
+                color: highlighted
+                  ? edge.hasStairs
+                    ? "#fb7185"
+                    : edge.routeType === "accessible_alternative"
+                    ? "#14b8a6"
+                    : "#22d3ee"
+                  : edge.routeType === "connecting"
+                  ? "#94a3b8"
+                  : "#64748b",
                 weight: highlighted ? 8 : 4,
                 opacity: highlighted ? 0.95 : 0.45,
                 lineCap: "round",
+                dashArray:
+                  edge.routeType === "connecting"
+                    ? "8 8"
+                    : edge.routeType === "accessible_alternative"
+                    ? "2 8"
+                    : undefined,
               }}
             />
           );
         })}
-
-        {/* Strong route overlay */}
-        {routePositions.length > 0 && (
-          <Polyline
-            positions={routePositions}
-            pathOptions={{
-              color: "#06b6d4",
-              weight: 4,
-              opacity: 1,
-              lineCap: "round",
-            }}
-          />
-        )}
 
         {/* Location markers */}
         {visibleNodes.map((node) => {
