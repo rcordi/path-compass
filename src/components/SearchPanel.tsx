@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { PathNode } from "@/types/path";
 
 type SearchPanelProps = {
@@ -29,6 +29,8 @@ function SearchBox({
   const selectedNode = nodes.find((node) => node.id === selectedId);
   const [query, setQuery] = useState(selectedNode?.name ?? "");
   const [isOpen, setIsOpen] = useState(false);
+  
+  useEffect(() => { setQuery(selectedNode?.name ?? ""); }, [selectedNode]);
 
   const results = useMemo(() => {
     const searchText = query.trim().toLowerCase();
