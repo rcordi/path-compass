@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { nodes } from "@/data/nodes";
 import { edges } from "@/data/edges";
 import { findRoute } from "@/lib/routeFinder";
+import { SearchPanel } from "@/components/SearchPanel";
 
 const PathMap = dynamic(
   () => import("@/components/PathMap").then((mod) => mod.PathMap),
@@ -42,42 +43,16 @@ export default function Home() {
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
-          <aside className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-xl">
-            <h2 className="text-xl font-semibold">Find a route</h2>
+          <aside className="space-y-6">
+            <SearchPanel
+                nodes={nodes}
+                startId={startId}
+                endId={endId}
+                onStartChange={setStartId}
+                onEndChange={setEndId}
+              />
 
-            <div className="mt-6 grid gap-4">
-              <label className="flex flex-col gap-2">
-                <span className="text-sm text-slate-300">Start</span>
-                <select
-                  value={startId}
-                  onChange={(event) => setStartId(event.target.value)}
-                  className="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white"
-                >
-                  {nodes.map((node) => (
-                    <option key={node.id} value={node.id}>
-                      {node.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="flex flex-col gap-2">
-                <span className="text-sm text-slate-300">Destination</span>
-                <select
-                  value={endId}
-                  onChange={(event) => setEndId(event.target.value)}
-                  className="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white"
-                >
-                  {nodes.map((node) => (
-                    <option key={node.id} value={node.id}>
-                      {node.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-
-            <div className="mt-8 border-t border-slate-800 pt-6">
+            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-xl">
               <h2 className="text-xl font-semibold">Route summary</h2>
 
               {!route ? (
