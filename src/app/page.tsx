@@ -6,6 +6,7 @@ import { nodes } from "@/data/nodes";
 import { edges } from "@/data/edges";
 import { findRoute } from "@/lib/routeFinder";
 import { SearchPanel } from "@/components/SearchPanel";
+import type { RoutePreference } from "@/types/path";
 
 const PathMap = dynamic(
   () => import("@/components/PathMap").then((mod) => mod.PathMap),
@@ -22,8 +23,9 @@ const PathMap = dynamic(
 export default function Home() {
   const [startId, setStartId] = useState("union-station");
   const [endId, setEndId] = useState("first-canadian-place");
+  const [routePreference, setRoutePreference] = useState<RoutePreference>("fastest");
 
-  const route = findRoute(startId, endId, nodes, edges);
+  const route = findRoute(startId, endId, nodes, edges, routePreference);
 
   return (
     <main className="min-h-screen bg-slate-950 text-white">
@@ -51,6 +53,34 @@ export default function Home() {
                 onStartChange={setStartId}
                 onEndChange={setEndId}
               />
+              <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-xl">
+          <h2 className="text-xl font-semibold">Route options</h2>
+          <p className="mt-2 text-sm text-slate-400">
+            Choose how the route should be planned.
+          </p>
+
+          <div className="mt-4 grid gap-2">
+            {[
+              { label: "Fastest route", value: "fastest" },
+              { label: "Accessible route", value: "accessible" },
+              { label: "Avoid stairs", value: "avoid_stairs" },
+              { label: "Stay indoors", value: "stay_indoors" },
+            ].map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setRoutePreference(option.value as RoutePreference)}
+                className={`rounded-xl px-4 py-3 text-left text-sm font-semibold transition ${
+                  routePreference === option.value
+                    ? "bg-cyan-500 text-slate-950"
+                    : "bg-slate-950 text-slate-300 hover:bg-slate-800"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
             <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-xl">
               <h2 className="text-xl font-semibold">Route summary</h2>
