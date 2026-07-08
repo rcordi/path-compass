@@ -7,6 +7,7 @@ export const edges: PathEdge[] = [
     distance: 3,
     instruction: "From Union Station, follow the PATH signs toward Royal Bank Plaza.",
     accessible: true,
+    routeType: "main",
   },
   {
     from: "royal-bank-plaza",
@@ -14,6 +15,7 @@ export const edges: PathEdge[] = [
     distance: 4,
     instruction: "Continue through Royal Bank Plaza toward Brookfield Place.",
     accessible: true,
+    routeType: "main",
   },
   {
     from: "brookfield-place",
@@ -21,6 +23,7 @@ export const edges: PathEdge[] = [
     distance: 5,
     instruction: "Walk north through the PATH from Brookfield Place toward Commerce Court.",
     accessible: true,
+    routeType: "main",
   },
   {
     from: "commerce-court",
@@ -28,6 +31,7 @@ export const edges: PathEdge[] = [
     distance: 3,
     instruction: "Continue west through Commerce Court toward First Canadian Place.",
     accessible: true,
+    routeType: "main",
   },
   {
     from: "first-canadian-place",
@@ -35,6 +39,7 @@ export const edges: PathEdge[] = [
     distance: 4,
     instruction: "From First Canadian Place, follow the PATH north toward Richmond-Adelaide Centre.",
     accessible: true,
+    routeType: "main",
   },
   {
     from: "richmond-adelaide-centre",
@@ -42,5 +47,6 @@ export const edges: PathEdge[] = [
     distance: 7,
     instruction: "Continue northeast through the PATH toward CF Toronto Eaton Centre.",
     accessible: true,
+    routeType: "main",
   },
 ];

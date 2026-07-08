@@ -36,14 +36,15 @@ export function findRoute(
     graph.get(edge.from)?.push(edge);
 
     graph.get(edge.to)?.push({
-      from: edge.to,
-      to: edge.from,
-      distance: edge.distance,
-      instruction: `Go back from ${nodeMap.get(edge.to)?.name} toward ${
-        nodeMap.get(edge.from)?.name
-      }.`,
-      accessible: edge.accessible,
-    });
+  from: edge.to,
+  to: edge.from,
+  distance: edge.distance,
+  instruction: `Go back from ${nodeMap.get(edge.to)?.name} toward ${
+    nodeMap.get(edge.from)?.name
+  }.`,
+  accessible: edge.accessible,
+  routeType: edge.routeType,
+});
   }
 
   const distances = new Map<string, number>();
