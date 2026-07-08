@@ -1,4 +1,4 @@
-import type { PathEdge, PathNode } from "@/types/path";
+import type { PathEdge, PathNode, RoutePreference } from "@/types/path";
 
 export type RouteStep = {
   from: PathNode;
@@ -16,7 +16,8 @@ export function findRoute(
   startId: string,
   endId: string,
   nodes: PathNode[],
-  edges: PathEdge[]
+  edges: PathEdge[],
+  preference: RoutePreference = "fastest"
 ): RouteResult | null {
   if (startId === endId) {
     return {
@@ -27,9 +28,29 @@ export function findRoute(
 
   const nodeMap = new Map(nodes.map((node) => [node.id, node]));
 
+  const filteredEdges = edges.filter((edge) => {
+    if (preference === "accessible" && !edge.accessible) {
+      return false;
+    }
+
+    if (preference === "avoid_stairs" && edge.hasStairs) {
+      return false;
+    }
+    return true;
+  });
+
+  function getEdgeCost(edge: PathEdge) {
+    let cost = edge.distance;
+
+    if (preference === "stay_indoors" && edge.indoor === false) {
+      cost += 10;
+    }
+    return cost;
+  }
+
   const graph = new Map<string, PathEdge[]>();
 
-  for (const edge of edges) {
+  for (const edge of filteredEdges) {
     if (!graph.has(edge.from)) graph.set(edge.from, []);
     if (!graph.has(edge.to)) graph.set(edge.to, []);
 
@@ -77,7 +98,7 @@ export function findRoute(
     const neighbors = graph.get(current) ?? [];
 
     for (const edge of neighbors) {
-      const newDistance = distances.get(current)! + edge.distance;
+      const newDistance = distances.get(current)! + getEdgeCost(edge);
 
       if (newDistance < distances.get(edge.to)!) {
         distances.set(edge.to, newDistance);
@@ -105,8 +126,8 @@ export function findRoute(
     const toId = path[i + 1];
 
     const edge =
-      edges.find((edge) => edge.from === fromId && edge.to === toId) ??
-      edges.find((edge) => edge.from === toId && edge.to === fromId);
+    filteredEdges.find((edge) => edge.from === fromId && edge.to === toId) ??
+    filteredEdges.find((edge) => edge.from === toId && edge.to === fromId);
 
     const fromNode = nodeMap.get(fromId);
     const toNode = nodeMap.get(toId);

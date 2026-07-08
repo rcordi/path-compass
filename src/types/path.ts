@@ -34,4 +34,12 @@ export type PathEdge = {
   instruction: string;
   accessible: boolean;
   routeType: RouteType;
+  indoor?: boolean;
+  hasStairs?: boolean;
 };
+
+export type RoutePreference =
+  | "fastest"
+  | "accessible"
+  | "avoid_stairs"
+  | "stay_indoors";

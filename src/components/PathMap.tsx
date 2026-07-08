@@ -1,12 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   CircleMarker,
   MapContainer,
   Polyline,
   Popup,
-  Rectangle,
   Tooltip,
   useMap,
 } from "react-leaflet";
@@ -142,28 +141,29 @@ function getNodeStyle(node: PathNode, options: {
 function FitMapToRoute({ route }: { route: RouteResult | null }) {
   const map = useMap();
 
-  if (!route || route.steps.length === 0) {
-    return null;
-  }
+  useEffect(() => {
+    if (!route || route.steps.length === 0) {
+      return;
+    }
 
-  const routePositions: LatLngExpression[] = [];
+    const routePositions: LatLngExpression[] = [];
 
-  for (const step of route.steps) {
-    routePositions.push(toMapPosition(step.from));
-    routePositions.push(toMapPosition(step.to));
-  }
+    for (const step of route.steps) {
+      routePositions.push(toMapPosition(step.from));
+      routePositions.push(toMapPosition(step.to));
+    }
 
-  if (routePositions.length < 2) {
-    return null;
-  }
+    if (routePositions.length < 2) {
+      return;
+    }
 
-  setTimeout(() => {
     const bounds = latLngBounds(routePositions);
+
     map.fitBounds(bounds, {
       padding: [60, 60],
       maxZoom: 5,
     });
-  }, 0);
+  }, [map, route]);
 
   return null;
 }
@@ -259,6 +259,7 @@ export function PathMap({
   </div>
 
       <MapContainer
+        key="path-compass-map"
         crs={CRS.Simple}
         bounds={[
           [0, 0],
@@ -276,59 +277,6 @@ export function PathMap({
         className="h-full w-full bg-slate-950"
       >
         <FitMapToRoute route={route} />
-
-        {/* Simple downtown background blocks */}
-        <Rectangle
-          bounds={[
-            [5, 5],
-            [95, 95],
-          ]}
-          pathOptions={{
-            color: "#1e293b",
-            weight: 1,
-            fillColor: "#0f172a",
-            fillOpacity: 0.8,
-          }}
-        />
-
-        <Rectangle
-          bounds={[
-            [65, 35],
-            [92, 85],
-          ]}
-          pathOptions={{
-            color: "#334155",
-            weight: 1,
-            fillColor: "#1e293b",
-            fillOpacity: 0.5,
-          }}
-        />
-
-        <Rectangle
-          bounds={[
-            [35, 35],
-            [65, 75],
-          ]}
-          pathOptions={{
-            color: "#334155",
-            weight: 1,
-            fillColor: "#1e293b",
-            fillOpacity: 0.5,
-          }}
-        />
-
-        <Rectangle
-          bounds={[
-            [10, 35],
-            [35, 75],
-          ]}
-          pathOptions={{
-            color: "#334155",
-            weight: 1,
-            fillColor: "#1e293b",
-            fillOpacity: 0.5,
-          }}
-        />
 
         {/* All PATH connections */}
         {visibleEdges.map((edge) => {
