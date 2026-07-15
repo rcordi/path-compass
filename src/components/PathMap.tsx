@@ -144,6 +144,53 @@ function getNodeStyle(node: PathNode, options: {
   };
 }
 
+function getRouteLineStyle(edge: PathEdge, highlighted: boolean) {
+  if (edge.hasStairs) {
+    return {
+      color: highlighted ? "#f43f5e" : "#fb7185",
+      weight: highlighted ? 8 : 4,
+      opacity: highlighted ? 1 : 0.5,
+      dashArray: "4 6",
+    };
+  }
+
+  if (edge.routeType === "accessible_alternative") {
+    return {
+      color: highlighted ? "#10b981" : "#14b8a6",
+      weight: highlighted ? 8 : 4,
+      opacity: highlighted ? 1 : 0.55,
+      dashArray: "2 8",
+    };
+  }
+
+  if (edge.routeType === "connecting") {
+    return {
+      color: highlighted ? "#facc15" : "#94a3b8",
+      weight: highlighted ? 7 : 4,
+      opacity: highlighted ? 0.95 : 0.45,
+      dashArray: "8 8",
+    };
+  }
+
+  return {
+    color: highlighted ? "#2563eb" : "#64748b",
+    weight: highlighted ? 8 : 4,
+    opacity: highlighted ? 1 : 0.45,
+    dashArray: undefined,
+  };
+}
+
+function findMatchingEdge(
+  routeStep: { from: PathNode; to: PathNode },
+  edges: PathEdge[]
+) {
+  return edges.find(
+    (edge) =>
+      (edge.from === routeStep.from.id && edge.to === routeStep.to.id) ||
+      (edge.from === routeStep.to.id && edge.to === routeStep.from.id)
+  );
+}
+
 function FitMapToRoute({ route }: { route: RouteResult | null }) {
   const map = useMap();
 
@@ -195,6 +242,36 @@ export function PathMap({
       : routePreference === "avoid_stairs"
       ? "Avoid stairs"
       : "Stay indoors";
+    const routeEdges =
+    route?.steps
+      .map((step) => findMatchingEdge(step, edges))
+      .filter((edge): edge is PathEdge => Boolean(edge)) ?? [];
+
+  const routeUsesStairs = routeEdges.some((edge) => edge.hasStairs);
+  const routeHasOutdoorSegment = routeEdges.some((edge) => edge.indoor === false);
+  const routeUsesAccessibleAlternative = routeEdges.some(
+    (edge) => edge.routeType === "accessible_alternative"
+  );
+
+  const routeChangesLevels =
+    route?.steps.some((step) => {
+      const fromLevels = step.from.levels;
+      const toLevels = step.to.levels;
+
+      return !fromLevels.some((level) => toLevels.includes(level));
+    }) ?? false;
+
+  const routeWarnings = [
+    routeUsesStairs ? "This route uses stairs." : null,
+    routeHasOutdoorSegment
+      ? "This route includes an outdoor or street-level segment."
+      : null,
+    routeUsesAccessibleAlternative
+      ? "This route uses an accessible alternative connection."
+      : null,
+    routeChangesLevels ? "This route may require changing levels." : null,
+  ].filter((warning): warning is string => Boolean(warning));
+
   const [activeLevel, setActiveLevel] = useState<PathLevel>("lower");
 
   const visibleNodes = nodes.filter((node) =>
@@ -217,12 +294,6 @@ export function PathMap({
       routeEdgeKeys.has(`${edge.to}-${edge.from}`)
     );
   };
-
-  const routePositions: LatLngExpression[] =
-    route?.steps.flatMap((step) => [
-      toMapPosition(step.from),
-      toMapPosition(step.to),
-    ]) ?? [];
 
   return (
     <div className="relative h-[650px] overflow-hidden rounded-2xl border border-slate-800 bg-slate-950 shadow-2xl">
@@ -272,6 +343,28 @@ export function PathMap({
     <p className="mt-1 text-sm font-semibold text-cyan-300">
       {routePreferenceLabel}
     </p>
+  </div>
+
+    <div className="mt-3 rounded-xl bg-slate-900 p-3">
+    <p className="text-xs text-slate-400">Route notes</p>
+
+    {!route || route.steps.length === 0 ? (
+      <p className="mt-1 text-sm text-slate-400">
+        Select a start and destination to see route notes.
+      </p>
+    ) : routeWarnings.length === 0 ? (
+      <p className="mt-1 text-sm font-semibold text-emerald-300">
+        No major warnings for this route.
+      </p>
+    ) : (
+      <ul className="mt-2 space-y-1">
+        {routeWarnings.map((warning) => (
+          <li key={warning} className="text-sm text-amber-300">
+            • {warning}
+          </li>
+        ))}
+      </ul>
+    )}
   </div>
 
   <button
@@ -328,6 +421,18 @@ export function PathMap({
       <div>
         <span className="mr-1 text-slate-300">■</span> Building
       </div>
+      <div>
+        <span className="mr-1 text-blue-500">━</span> Main route
+      </div>
+      <div>
+        <span className="mr-1 text-yellow-300">┅</span> Connecting
+      </div>
+      <div>
+        <span className="mr-1 text-emerald-400">┈</span> Accessible
+      </div>
+      <div>
+        <span className="mr-1 text-rose-400">┅</span> Stairs
+      </div>
     </div>
   </div>
 
@@ -364,25 +469,8 @@ export function PathMap({
             <Polyline
               key={`${edge.from}-${edge.to}`}
               positions={[toMapPosition(from), toMapPosition(to)]}
-              pathOptions={{
-                color: highlighted
-                  ? edge.hasStairs
-                    ? "#fb7185"
-                    : edge.routeType === "accessible_alternative"
-                    ? "#14b8a6"
-                    : "#22d3ee"
-                  : edge.routeType === "connecting"
-                  ? "#94a3b8"
-                  : "#64748b",
-                weight: highlighted ? 8 : 4,
-                opacity: highlighted ? 0.95 : 0.45,
+              pathOptions={{...getRouteLineStyle(edge, highlighted),
                 lineCap: "round",
-                dashArray:
-                  edge.routeType === "connecting"
-                    ? "8 8"
-                    : edge.routeType === "accessible_alternative"
-                    ? "2 8"
-                    : undefined,
               }}
             />
           );
