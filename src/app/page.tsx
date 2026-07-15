@@ -164,6 +164,7 @@ export default function Home() {
             route={route}
             startId={startId}
             endId={endId}
+            routePreference={routePreference}
             onSelectNode={(nodeId) => {
               if (mapClickMode === "start") {
                 setStartId(nodeId);

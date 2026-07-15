@@ -10,7 +10,12 @@ import {
   useMap,
 } from "react-leaflet";
 import { CRS, latLngBounds, LatLngExpression } from "leaflet";
-import type { PathEdge, PathLevel, PathNode } from "@/types/path";
+import type {
+  PathEdge,
+  PathLevel,
+  PathNode,
+  RoutePreference,
+} from "@/types/path";
 import type { RouteResult } from "@/lib/routeFinder";
 
 type PathMapProps = {
@@ -19,6 +24,7 @@ type PathMapProps = {
   route: RouteResult | null;
   startId: string;
   endId: string;
+  routePreference: RoutePreference;
   onSelectNode?: (nodeId: string) => void;
 };
 
@@ -174,10 +180,21 @@ export function PathMap({
   route,
   startId,
   endId,
+  routePreference,
   onSelectNode,
 }: PathMapProps) {
   const nodeMap = new Map(nodes.map((node) => [node.id, node]));
+  const startNode = nodeMap.get(startId);
+  const endNode = nodeMap.get(endId);
 
+  const routePreferenceLabel =
+    routePreference === "fastest"
+      ? "Fastest route"
+      : routePreference === "accessible"
+      ? "Accessible route"
+      : routePreference === "avoid_stairs"
+      ? "Avoid stairs"
+      : "Stay indoors";
   const [activeLevel, setActiveLevel] = useState<PathLevel>("lower");
 
   const visibleNodes = nodes.filter((node) =>
@@ -213,7 +230,63 @@ export function PathMap({
         <p className="text-sm font-semibold text-white">PATH Map</p>
         <p className="text-xs text-slate-400">Zoom, drag, and select places</p>
       </div>
+      <div className="absolute right-4 top-4 z-[1000] w-[320px] rounded-2xl border border-slate-700 bg-slate-950/95 p-4 shadow-2xl backdrop-blur">
+  <p className="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300">
+    Current route
+  </p>
 
+  <div className="mt-3">
+    <p className="text-sm text-slate-400">From</p>
+    <p className="font-semibold text-white">
+      {startNode?.name ?? "Select start"}
+    </p>
+  </div>
+
+  <div className="my-3 h-px bg-slate-800" />
+
+  <div>
+    <p className="text-sm text-slate-400">To</p>
+    <p className="font-semibold text-white">
+      {endNode?.name ?? "Select destination"}
+    </p>
+  </div>
+
+  <div className="mt-4 grid grid-cols-2 gap-3">
+    <div className="rounded-xl bg-slate-900 p-3">
+      <p className="text-xs text-slate-400">Distance score</p>
+      <p className="mt-1 text-lg font-bold text-white">
+        {route ? route.totalDistance : "—"}
+      </p>
+    </div>
+
+    <div className="rounded-xl bg-slate-900 p-3">
+      <p className="text-xs text-slate-400">Segments</p>
+      <p className="mt-1 text-lg font-bold text-white">
+        {route ? route.steps.length : "—"}
+      </p>
+    </div>
+  </div>
+
+  <div className="mt-3 rounded-xl bg-slate-900 p-3">
+    <p className="text-xs text-slate-400">Route type</p>
+    <p className="mt-1 text-sm font-semibold text-cyan-300">
+      {routePreferenceLabel}
+    </p>
+  </div>
+
+  <button
+    type="button"
+    disabled
+    className="mt-4 w-full rounded-xl bg-cyan-500/50 px-4 py-3 text-sm font-bold text-slate-950 opacity-70"
+  >
+    Start navigation — coming later
+  </button>
+
+  <p className="mt-3 text-xs text-slate-500">
+    Live location will be added after the route map and PATH data are more
+    detailed.
+  </p>
+</div>
       <div className="absolute bottom-4 left-4 z-[1000] max-w-[520px] rounded-2xl border border-slate-700 bg-slate-950/90 p-3 shadow-xl backdrop-blur">
         <div className="flex flex-wrap gap-2">
           {[
