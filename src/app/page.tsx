@@ -13,12 +13,14 @@ const PathMap = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex h-[650px] items-center justify-center rounded-2xl border border-slate-800 bg-slate-950 text-slate-300">
+      <div className="flex h-screen w-screen items-center justify-center bg-slate-950 text-slate-300">
         Loading map...
       </div>
     ),
   }
 );
+
+
 
 export default function Home() {
   const [startId, setStartId] = useState("union-station");
@@ -29,153 +31,107 @@ export default function Home() {
   const [routePreference, setRoutePreference] = useState<RoutePreference>("fastest");
 
   const route = findRoute(startId, endId, nodes, edges, routePreference);
+  const [fitRouteTrigger, setFitRouteTrigger] = useState(0);
+  
+  function updateRouteSelection(type: "start" | "destination", nodeId: string) {
+    if (type === "start") {
+      setStartId(nodeId);
+    } else {
+      setEndId(nodeId);
+    }
 
+    setFitRouteTrigger((current) => current + 1);
+  }
   return (
-    <main className="min-h-screen bg-slate-950 text-white">
-      <section className="mx-auto flex max-w-7xl flex-col gap-6 px-6 py-8">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-cyan-300">
-            Path Compass
-          </p>
-          <h1 className="mt-3 text-4xl font-bold tracking-tight">
-            Toronto PATH Navigator
-          </h1>
-          <p className="mt-4 max-w-3xl text-slate-300">
-            Search and plan indoor walking routes through Toronto&apos;s PATH
-            network. This prototype starts with major PATH-connected buildings
-            and stations.
-          </p>
+  <main className="relative h-screen w-screen overflow-hidden bg-slate-950 text-white">
+    <div className="absolute inset-0">
+      <PathMap
+        nodes={nodes}
+        edges={edges}
+        route={route}
+        startId={startId}
+        endId={endId}
+        routePreference={routePreference}
+        fitRouteTrigger={fitRouteTrigger}
+        onSelectNode={(nodeId: string) => {
+          updateRouteSelection(mapClickMode, nodeId);
+        }}
+      />
+    </div>
+
+    <div className="absolute left-4 top-4 z-[1100] w-[380px] space-y-4">
+      <SearchPanel
+        nodes={nodes}
+        startId={startId}
+        endId={endId}
+        onStartChange={(nodeId: string) => updateRouteSelection("start", nodeId)}
+        onEndChange={(nodeId: string) =>
+          updateRouteSelection("destination", nodeId)
+        }
+      />
+
+      <div className="rounded-2xl border border-slate-800 bg-slate-950/95 p-4 shadow-xl backdrop-blur">
+        <h2 className="text-lg font-semibold">Map click mode</h2>
+        <p className="mt-2 text-sm text-slate-400">
+          Choose what happens when you click a location marker.
+        </p>
+
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => setMapClickMode("start")}
+            className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${
+              mapClickMode === "start"
+                ? "bg-green-500 text-slate-950"
+                : "bg-slate-900 text-slate-300 hover:bg-slate-800"
+            }`}
+          >
+            Set start
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setMapClickMode("destination")}
+            className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${
+              mapClickMode === "destination"
+                ? "bg-orange-500 text-slate-950"
+                : "bg-slate-900 text-slate-300 hover:bg-slate-800"
+            }`}
+          >
+            Set destination
+          </button>
         </div>
+      </div>
 
-        <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
-          <aside className="space-y-6">
-            <SearchPanel
-                nodes={nodes}
-                startId={startId}
-                endId={endId}
-                onStartChange={setStartId}
-                onEndChange={setEndId}
-              />
+      <div className="rounded-2xl border border-slate-800 bg-slate-950/95 p-4 shadow-xl backdrop-blur">
+        <h2 className="text-lg font-semibold">Route options</h2>
 
-          <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-xl">
-            <h2 className="text-xl font-semibold">Map click mode</h2>
-            <p className="mt-2 text-sm text-slate-400">
-              Choose what happens when you click a location marker on the map.
-            </p>
-
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setMapClickMode("start")}
-                className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${
-                  mapClickMode === "start"
-                    ? "bg-green-500 text-slate-950"
-                    : "bg-slate-950 text-slate-300 hover:bg-slate-800"
-                }`}
-              >
-                Set start
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setMapClickMode("destination")}
-                className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${
-                  mapClickMode === "destination"
-                    ? "bg-orange-500 text-slate-950"
-                    : "bg-slate-950 text-slate-300 hover:bg-slate-800"
-                }`}
-              >
-                Set destination
-              </button>
-            </div>
-          </div>
-          <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-xl">
-          <h2 className="text-xl font-semibold">Route options</h2>
-          <p className="mt-2 text-sm text-slate-400">
-            Choose how the route should be planned.
-          </p>
-
-          <div className="mt-4 grid gap-2">
-            {[
-              { label: "Fastest route", value: "fastest" },
-              { label: "Accessible route", value: "accessible" },
-              { label: "Avoid stairs", value: "avoid_stairs" },
-              { label: "Stay indoors", value: "stay_indoors" },
-            ].map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => setRoutePreference(option.value as RoutePreference)}
-                className={`rounded-xl px-4 py-3 text-left text-sm font-semibold transition ${
-                  routePreference === option.value
-                    ? "bg-cyan-500 text-slate-950"
-                    : "bg-slate-950 text-slate-300 hover:bg-slate-800"
-                }`}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
+        <div className="mt-3 grid gap-2">
+          {[
+            { label: "Fastest route", value: "fastest" },
+            { label: "Accessible route", value: "accessible" },
+            { label: "Avoid stairs", value: "avoid_stairs" },
+            { label: "Stay indoors", value: "stay_indoors" },
+          ].map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => {
+                setRoutePreference(option.value as RoutePreference);
+                setFitRouteTrigger((current) => current + 1);
+              }}
+              className={`rounded-xl px-4 py-3 text-left text-sm font-semibold transition ${
+                routePreference === option.value
+                  ? "bg-cyan-500 text-slate-950"
+                  : "bg-slate-900 text-slate-300 hover:bg-slate-800"
+              }`}
+            >
+              {option.label}
+            </button>
+          ))}
         </div>
-
-            <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-xl">
-              <h2 className="text-xl font-semibold">Route summary</h2>
-
-              {!route ? (
-                <p className="mt-4 text-red-300">
-                  No route found between those locations yet.
-                </p>
-              ) : route.steps.length === 0 ? (
-                <p className="mt-4 text-slate-300">
-                  You are already at your destination.
-                </p>
-              ) : (
-                <>
-                  <p className="mt-4 text-slate-300">
-                    Distance score:{" "}
-                    <span className="font-semibold text-white">
-                      {route.totalDistance}
-                    </span>
-                  </p>
-
-                  <ol className="mt-4 space-y-3">
-                    {route.steps.map((step, index) => (
-                      <li
-                        key={`${step.from.id}-${step.to.id}`}
-                        className="rounded-xl border border-slate-800 bg-slate-950 p-3"
-                      >
-                        <p className="text-xs font-semibold text-cyan-300">
-                          Step {index + 1}
-                        </p>
-                        <p className="mt-1 text-sm font-medium">
-                          {step.from.name} → {step.to.name}
-                        </p>
-                      </li>
-                    ))}
-                  </ol>
-                </>
-              )}
-            </div>
-          </aside>
-
-          <PathMap
-            nodes={nodes}
-            edges={edges}
-            route={route}
-            startId={startId}
-            endId={endId}
-            routePreference={routePreference}
-            onSelectNode={(nodeId) => {
-              if (mapClickMode === "start") {
-                setStartId(nodeId);
-                return;
-              }
-
-              setEndId(nodeId);
-            }}
-          />
-        </div>
-      </section>
-    </main>
-  );
+      </div>
+    </div>
+  </main>
+);
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   CircleMarker,
   MapContainer,
@@ -25,6 +25,7 @@ type PathMapProps = {
   startId: string;
   endId: string;
   routePreference: RoutePreference;
+  fitRouteTrigger: number;
   onSelectNode?: (nodeId: string) => void;
 };
 
@@ -191,10 +192,23 @@ function findMatchingEdge(
   );
 }
 
-function FitMapToRoute({ route }: { route: RouteResult | null }) {
+function FitMapToRoute({
+  route,
+  fitRouteTrigger,
+}: {
+  route: RouteResult | null;
+  fitRouteTrigger: number;
+}) {
   const map = useMap();
+  const previousTriggerRef = useRef(fitRouteTrigger);
 
   useEffect(() => {
+    if (previousTriggerRef.current === fitRouteTrigger) {
+      return;
+    }
+
+    previousTriggerRef.current = fitRouteTrigger;
+
     if (!route || route.steps.length === 0) {
       return;
     }
@@ -213,10 +227,10 @@ function FitMapToRoute({ route }: { route: RouteResult | null }) {
     const bounds = latLngBounds(routePositions);
 
     map.fitBounds(bounds, {
-      padding: [60, 60],
+      padding: [90, 90],
       maxZoom: 5,
     });
-  }, [map, route]);
+  }, [fitRouteTrigger, map, route]);
 
   return null;
 }
@@ -228,6 +242,7 @@ export function PathMap({
   startId,
   endId,
   routePreference,
+  fitRouteTrigger,
   onSelectNode,
 }: PathMapProps) {
   const nodeMap = new Map(nodes.map((node) => [node.id, node]));
@@ -296,12 +311,14 @@ export function PathMap({
   };
 
   return (
-    <div className="relative h-[650px] overflow-hidden rounded-2xl border border-slate-800 bg-slate-950 shadow-2xl">
+    <div className="relative h-screen w-full overflow-hidden bg-slate-950">
       <div className="absolute left-4 top-4 z-[1000] rounded-2xl border border-slate-700 bg-slate-950/90 px-4 py-3 shadow-xl backdrop-blur">
         <p className="text-sm font-semibold text-white">PATH Map</p>
         <p className="text-xs text-slate-400">Zoom, drag, and select places</p>
       </div>
-      <div className="absolute right-4 top-4 z-[1000] w-[320px] rounded-2xl border border-slate-700 bg-slate-950/95 p-4 shadow-2xl backdrop-blur">
+
+  {/* Route Card */}
+  <div className="absolute right-4 top-24 z-[1000] w-[340px] rounded-3xl border border-slate-700 bg-slate-950/95 p-4 shadow-2xl backdrop-blur">
   <p className="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300">
     Current route
   </p>
@@ -367,18 +384,26 @@ export function PathMap({
     )}
   </div>
 
+   <div className="absolute right-4 bottom-4 z-[1000] flex flex-col gap-2">
   <button
     type="button"
     disabled
-    className="mt-4 w-full rounded-xl bg-cyan-500/50 px-4 py-3 text-sm font-bold text-slate-950 opacity-70"
+    className="rounded-full border border-slate-700 bg-slate-950/95 px-4 py-3 text-sm font-semibold text-slate-400 shadow-xl backdrop-blur"
+    title="Live location will be added later"
   >
-    Start navigation — coming later
+    ◎ Live location
   </button>
 
-  <p className="mt-3 text-xs text-slate-500">
-    Live location will be added after the route map and PATH data are more
-    detailed.
-  </p>
+  <button
+    type="button"
+    disabled
+    className="rounded-full border border-slate-700 bg-slate-950/95 px-4 py-3 text-sm font-semibold text-slate-400 shadow-xl backdrop-blur"
+    title="Recenter will be added as a manual control later"
+  >
+    ⌖ Recenter
+  </button>
+</div>
+
 </div>
       <div className="absolute bottom-4 left-4 z-[1000] max-w-[520px] rounded-2xl border border-slate-700 bg-slate-950/90 p-3 shadow-xl backdrop-blur">
         <div className="flex flex-wrap gap-2">
@@ -439,10 +464,6 @@ export function PathMap({
       <MapContainer
         key="path-compass-map"
         crs={CRS.Simple}
-        bounds={[
-          [0, 0],
-          [100, 100],
-        ]}
         maxBounds={[
           [-20, -20],
           [120, 120],
@@ -454,7 +475,7 @@ export function PathMap({
         scrollWheelZoom
         className="h-full w-full bg-slate-950"
       >
-        <FitMapToRoute route={route} />
+        <FitMapToRoute route={route} fitRouteTrigger={fitRouteTrigger} />
 
         {/* All PATH connections */}
         {visibleEdges.map((edge) => {

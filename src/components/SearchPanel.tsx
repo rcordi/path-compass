@@ -26,11 +26,13 @@ function SearchBox({
   selectedId,
   onSelect,
 }: SearchBoxProps) {
-  const selectedNode = nodes.find((node) => node.id === selectedId);
-  const [query, setQuery] = useState(selectedNode?.name ?? "");
+  const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
-  
-  useEffect(() => { setQuery(selectedNode?.name ?? ""); }, [selectedNode]);
+
+  useEffect(() => {
+    const selectedNode = nodes.find((node) => node.id === selectedId);
+    setQuery(selectedNode?.name ?? "");
+  }, [nodes, selectedId]);
 
   const results = useMemo(() => {
     const searchText = query.trim().toLowerCase();
@@ -54,6 +56,12 @@ function SearchBox({
       })
       .slice(0, 6);
   }, [nodes, query]);
+
+  function handleSelect(node: PathNode) {
+    onSelect(node.id);
+    setQuery(node.name);
+    setIsOpen(false);
+  }
 
   return (
     <div className="relative">
@@ -83,11 +91,7 @@ function SearchBox({
               <button
                 key={node.id}
                 type="button"
-                onClick={() => {
-                  onSelect(node.id);
-                  setQuery(node.name);
-                  setIsOpen(false);
-                }}
+                onClick={() => handleSelect(node)}
                 className="block w-full border-b border-slate-800 px-4 py-3 text-left last:border-b-0 hover:bg-slate-900"
               >
                 <p className="font-medium text-white">{node.name}</p>
@@ -111,13 +115,13 @@ export function SearchPanel({
   onEndChange,
 }: SearchPanelProps) {
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-xl">
-      <h2 className="text-xl font-semibold">Search PATH</h2>
+    <div className="rounded-2xl border border-slate-800 bg-slate-950/95 p-4 shadow-xl backdrop-blur">
+      <h2 className="text-lg font-semibold">Search PATH</h2>
       <p className="mt-2 text-sm text-slate-400">
         Search for buildings, stations, entrances, and PATH-connected places.
       </p>
 
-      <div className="mt-6 grid gap-4">
+      <div className="mt-5 grid gap-4">
         <SearchBox
           label="Start"
           placeholder="Search starting point..."
